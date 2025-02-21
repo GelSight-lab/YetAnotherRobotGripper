@@ -13,7 +13,8 @@ workspace:
   duo:                          [147, 238]
   MAX_CTRL_CUR:                 100
   # PID:                          [250, 0, 30]
-  CTRL_INIT_POS:             1700
+  CTRL_INIT_POS:                1700
+  CUR_LIMIT:                    [-600, 600]
 
 control_table:
   ADDR_TORQUE_ENABLE:           64
@@ -21,6 +22,7 @@ control_table:
   ADDR_CONTROL_MODE:            11
   ADDR_PRESENT_POSITION:        132
   ADDR_PRESENT_CURRENT:         126
+  ADDR_CURRENT_LIMIT:           38
 
   ADDR_HOMING_OFFSET:           20
 

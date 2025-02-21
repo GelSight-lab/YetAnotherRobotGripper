@@ -18,7 +18,7 @@ class DxlGripperInterface():
     @property
     def gripper_id(self):
         return self._gripper_id
-    
+
     @staticmethod
     def deg_to_position(deg):
         return int(deg / 360.0 * 4095)
@@ -55,6 +55,9 @@ class DxlGripperInterface():
         else:
             # print("Failed to set the baudrate")
             raise SystemError("Baudrate setting failure")
+
+        # set up the gripper motor
+        self.set_current_limit(self.gripper_id)
     
     def _write_byte(self, n_byte, ID, addr, val):
         if n_byte == 1:
@@ -96,6 +99,10 @@ class DxlGripperInterface():
 
         return value
 
+    def set_current_limit(self, ID, limit = 501):
+        print(f"Current limit of motor {ID} set to {limit}.")
+        self._write_byte(2, ID, self.protocol["control_table"]["ADDR_CURRENT_LIMIT"], limit) 
+        
     def _set_torque(self, ID, enable):
         self._write_byte(1, ID, 
             self.protocol["control_table"]["ADDR_TORQUE_ENABLE"], enable)
@@ -131,7 +138,10 @@ class DxlGripperInterface():
         return self.twos_compliment(self._read_byte(4, ID,
                 self.protocol["control_table"]["ADDR_PRESENT_POSITION"]))
 
-    def read_current(self, ID):
+    def read_current(self, ID=None):
+        if ID == None:
+            ID = self.gripper_id
+        
         return self.twos_compliment_2byte(self._read_byte(2, ID,
                 self.protocol["control_table"]["ADDR_PRESENT_CURRENT"]))
     
@@ -197,7 +207,12 @@ class DxlGripperInterface():
     def write_goal_current(self, ID, cur):
         # set current control
         # self.set_control_mode(ID, current=True, enable_torque=True)
-        # cur = np.clip(cur, *self.protocol["workspace"]["max_current"])
+        if np.min(cur) < self.protocol["workspace"]["CUR_LIMIT"][0] or \
+            np.max(cur) > self.protocol["workspace"]["CUR_LIMIT"][1]:
+            cur = np.clip(cur, *self.protocol["workspace"]["CUR_LIMIT"])
+            print(f"Warning: goal current {cur} exceeds current limit, clipped within the current limit range." )
+
+        
         self._write_byte(2, ID, 
             self.protocol["control_table"]["ADDR_GOAL_CURRENT"], cur)
     
@@ -300,12 +315,44 @@ class DxlGripperInterface():
         self.disable_torque()
         print("Gripper disabled.")
     
+
+    
 if __name__ == "__main__":
-    gripper = DxlGripperInterface()
+    
+    cfg = yaml.safe_load(open("./firmware/pc_interface/dxlgripper_config.yml"))
+    gripper = DxlGripperInterface(cfg)
     gripper.init()
     gripper.home_gripper()
 
     gripper.start()
+    
+    time.sleep(3)
+    
+    # print("Closing with 50 current")
+    # gripper.close()
+    # time.sleep(1)
+    # print(f"current value: {gripper.read_current()}")
+    # time.sleep(1)
+    # gripper.open()
+    # time.sleep(3)
+    
+    cur = 50
+    print(f"Closing with {cur} current")
+    gripper.close(cur)
+    time.sleep(1)
+    print(f"current value: {gripper.read_current()}")
+    time.sleep(29)
+    gripper.open()
+    time.sleep(3)
+    
+    # cur = 500
+    # print(f"Closing with {cur} current")
+    # gripper.close(cur)
+    # time.sleep(1)
+    # print(f"current value: {gripper.read_current()}")
+    # time.sleep(1)
+    # gripper.open()
+    # time.sleep(.5)
         # time.sleep(0.01)
     # gripper.write_goal_current(gripper.gripper_id, 50)
     # gripper.enable_torque(True, False)
