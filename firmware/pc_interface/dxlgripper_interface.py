@@ -155,7 +155,7 @@ class DxlGripperInterface():
         return self.twos_compliment(self._read_byte(4, ID, 
                 self.protocol["control_table"]["ADDR_HOMING_OFFSET"]))
     
-    def close(self):
+    def shut_down(self):
         self.disable_torque(True, False)
         self.portHandler.closePort()
 
